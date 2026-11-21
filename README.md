@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛒 Listig
 
-## Getting Started
+En **mobile first** app för delade listor – handlingslistor, önskelistor och vill ha-listor – som du delar med vänner och familj via en länk.
 
-First, run the development server:
+## Funktioner
+
+- **Tre listtyper**
+  - 🛒 **Handlingslista** – bocka av, se vem som bockat av vad.
+  - 🎁 **Önskelista** – vänner *reserverar* presenter så ingen köper samma sak. Ägaren ser **inte** vad som är reserverat, och kommentarer kan markeras som hemliga, så överraskningen håller.
+  - ✨ **Vill ha-lista** – spara saker du spanar på, prioritera med stjärnor och jämför priser.
+- **Dela med en länk** – via mobilens delningsmeny (Web Share API) eller kopiera länken. Ingen inloggning; man anger bara sitt namn första gången.
+- **Klistra in en produktlänk** – appen hämtar namn, bild, beskrivning och pris (OpenGraph + JSON-LD `Product`).
+- **Detaljsida** per sak med bild, pris, mer info om produkten, anteckning, antal, prioritet och **kommentarer**.
+- **Var finns den?** – prisjämförelse från Google Shopping (via SerpApi) samt direktlänkar till sökningar på Prisjakt, PriceRunner och Google Shopping.
+- Uppdateras automatiskt så alla ser samma lista. Ljust/mörkt läge. Kan läggas till på hemskärmen (PWA-manifest).
+
+## Om pris-API:erna
+
+| Tjänst | Öppet API? | Hur Listig använder den |
+|---|---|---|
+| Google Shopping | Nej (inget officiellt sök-API) | Via [SerpApi Google Shopping API](https://serpapi.com/google-shopping-api) om `SERPAPI_KEY` är satt – butiker, priser, betyg |
+| Prisjakt | Endast partner-API efter ansökan | Länk till sökresultat |
+| PriceRunner | Nej (affiliate-feeds via nätverk) | Länk till sökresultat |
+
+Har du partneråtkomst till Prisjakt eller PriceRunner kan du lägga till en provider i [`src/lib/prices.ts`](src/lib/prices.ts).
+
+## Kom igång
 
 ```bash
+npm install
+cp .env.example .env.local   # valfritt: lägg in SERPAPI_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Öppna http://localhost:3000 (gärna i mobilvy).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Teknik
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js 15 (App Router) + React 19 + Tailwind CSS 4
+- [libSQL](https://github.com/tursodatabase/libsql) – lokal SQLite-fil i utveckling, [Turso](https://turso.tech) i produktion
+- Ingen inloggning: listans id i URL:en är delningsnyckeln; den som skapar listan får en ägartoken (sparas i webbläsaren) som krävs för att byta namn på/ta bort listan.
 
-## Learn More
+## Driftsätta
 
-To learn more about Next.js, take a look at the following resources:
+Funkar på t.ex. Vercel: sätt `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` och (valfritt) `SERPAPI_KEY` som miljövariabler.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Metod | Sökväg | Beskrivning |
+|---|---|---|
+| `POST` | `/api/lists` | Skapa lista `{ title, type: "shopping" \| "wish" \| "want" }` → `{ list, ownerToken }` |
+| `GET` / `PATCH` / `DELETE` | `/api/lists/:id` | Hämta lista med saker / ändra / ta bort (ägare, header `x-owner-token`) |
+| `POST` | `/api/lists/:id/items` | Lägg till sak `{ title, url?, author }` – en URL hämtar produktinfo |
+| `GET` / `PATCH` / `DELETE` | `/api/items/:id` | Detaljer (kommentarer, erbjudanden, söklänkar) / ändra / ta bort |
+| `POST` | `/api/items/:id/comments` | Kommentera `{ body, author, secret? }` |
+| `POST` | `/api/items/:id/offers` | Sök priser på Google Shopping |
+| `POST` | `/api/unfurl` | Hämta produktinfo från en URL |
 
-## Deploy on Vercel
+## Licens
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

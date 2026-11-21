@@ -1,0 +1,10 @@
+{
+  "name": "Listig",
+  "short_name": "Listig",
+  "description": "Delade handlingslistor, önskelistor och vill ha-listor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#f6f3ee",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

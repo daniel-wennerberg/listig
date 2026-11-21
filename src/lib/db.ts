@@ -1,0 +1,77 @@
+import { createClient, type Client } from "@libsql/client";
+
+// Lokalt: SQLite-fil. I produktion: sätt TURSO_DATABASE_URL + TURSO_AUTH_TOKEN.
+let client: Client | null = null;
+let ready: Promise<void> | null = null;
+
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS lists (
+    id TEXT PRIMARY KEY,
+    owner_token TEXT NOT NULL,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'shopping',
+    emoji TEXT NOT NULL DEFAULT '🛒',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS items (
+    id TEXT PRIMARY KEY,
+    list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    quantity INTEGER NOT NULL DEFAULT 1,
+    url TEXT NOT NULL DEFAULT '',
+    image TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    price REAL,
+    currency TEXT NOT NULL DEFAULT 'SEK',
+    priority INTEGER NOT NULL DEFAULT 0,
+    checked INTEGER NOT NULL DEFAULT 0,
+    checked_by TEXT NOT NULL DEFAULT '',
+    reserved_by TEXT NOT NULL DEFAULT '',
+    created_by TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS items_list ON items(list_id)`,
+  `CREATE TABLE IF NOT EXISTS comments (
+    id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    author TEXT NOT NULL,
+    body TEXT NOT NULL,
+    secret INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS comments_item ON comments(item_id)`,
+  `CREATE TABLE IF NOT EXISTS offers (
+    id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    merchant TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    price REAL,
+    currency TEXT NOT NULL DEFAULT 'SEK',
+    link TEXT NOT NULL,
+    thumbnail TEXT NOT NULL DEFAULT '',
+    rating REAL,
+    reviews INTEGER,
+    fetched_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS offers_item ON offers(item_id)`,
+];
+
+export async function db(): Promise<Client> {
+  if (!client) {
+    client = createClient({
+      url: process.env.TURSO_DATABASE_URL || "file:local.db",
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  if (!ready) {
+    const c = client;
+    ready = (async () => {
+      await c.execute("PRAGMA foreign_keys = ON").catch(() => {});
+      await c.batch(SCHEMA, "write");
+    })();
+  }
+  await ready;
+  return client;
+}
