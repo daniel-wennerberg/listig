@@ -72,7 +72,17 @@ export async function db(): Promise<Client> {
       await c.execute("PRAGMA foreign_keys = ON").catch(() => {});
       await c.batch(SCHEMA, "write");
       // Migreringar för databaser skapade med äldre schema
-      await c.execute("ALTER TABLE lists ADD COLUMN owner_name TEXT NOT NULL DEFAULT ''").catch(() => {});
+      for (const sql of [
+        "ALTER TABLE lists ADD COLUMN owner_name TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE items ADD COLUMN summary TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE items ADD COLUMN brand TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE items ADD COLUMN gtin TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE items ADD COLUMN category TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE items ADD COLUMN rating REAL",
+        "ALTER TABLE items ADD COLUMN review_count INTEGER",
+      ]) {
+        await c.execute(sql).catch(() => {}); // finns redan
+      }
     })();
   }
   await ready;

@@ -27,6 +27,8 @@ export default function ItemPage() {
   const [toast, setToast] = useToast();
   const [editing, setEditing] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [crawling, setCrawling] = useState(false);
+  const [allOffers, setAllOffers] = useState(false);
   const pending = useRef<(() => void) | null>(null);
 
   const load = useCallback(async () => {
@@ -74,6 +76,24 @@ export default function ItemPage() {
     }
   }
 
+  /** Läs (ny) produktlänk och uppdatera info + butiker. */
+  async function recrawl(url?: string, overwriteTitle = false) {
+    setCrawling(true);
+    try {
+      const { item, crawled } = await api<{ item: Item; crawled: boolean }>(`/api/items/${itemId}/crawl`, {
+        listId: id,
+        body: { url, overwriteTitle },
+      });
+      setData((d) => (d ? { ...d, item } : d));
+      await load();
+      setToast(crawled ? "Produktinfo uppdaterad" : "Sidan blockerar läsning – bara namnet kunde gissas");
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Kunde inte läsa länken");
+    } finally {
+      setCrawling(false);
+    }
+  }
+
   async function remove() {
     await api(`/api/items/${itemId}`, { method: "DELETE", listId: id });
     router.replace(`/l/${id}`);
@@ -115,10 +135,31 @@ export default function ItemPage() {
 
       <section className="px-4 pt-5">
         {editing ? (
-          <EditForm item={item} onSave={(b) => (patch(b), setEditing(false))} onDelete={remove} />
+          <EditForm
+            item={item}
+            crawling={crawling}
+            onSave={(b) => (patch(b), setEditing(false))}
+            onRecrawl={async (url) => {
+              await recrawl(url, true);
+              setEditing(false);
+            }}
+            onDelete={remove}
+          />
         ) : (
           <>
+            {(item.brand || item.category) && (
+              <p className="mb-1 text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--accent)" }}>
+                {[item.brand, item.category].filter(Boolean).join(" · ")}
+              </p>
+            )}
             <h1 className="font-display text-3xl font-extrabold leading-tight tracking-tight">{item.title}</h1>
+            {item.rating != null && (
+              <p className="mt-1 flex items-center gap-1 text-sm text-muted">
+                <span style={{ color: "var(--accent)" }}>{"★".repeat(Math.round(item.rating))}{"☆".repeat(Math.max(0, 5 - Math.round(item.rating)))}</span>
+                {item.rating.toLocaleString("sv-SE")}
+                {item.review_count ? ` (${item.review_count} betyg)` : ""}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
               {item.price != null && <span className="text-xl font-bold text-ink">{formatPrice(item.price, item.currency)}</span>}
               {item.quantity > 1 && <span>{item.quantity} st</span>}
@@ -129,7 +170,10 @@ export default function ItemPage() {
               )}
             </div>
             {item.created_by && <p className="mt-1 text-xs text-muted">Tillagd av {item.created_by} · {timeAgo(item.created_at)}</p>}
-            {item.note && <p className="mt-4 rounded-2xl bg-card p-4">{item.note}</p>}
+            {item.summary && (
+              <p className="mt-4 text-[15px] leading-relaxed">{item.summary}</p>
+            )}
+            {item.note && <p className="mt-4 rounded-2xl bg-card p-4">📝 {item.note}</p>}
           </>
         )}
       </section>
@@ -192,7 +236,7 @@ export default function ItemPage() {
       )}
 
       {/* Mer info */}
-      {item.description && !editing && (
+      {item.description && item.description !== item.summary && !editing && (
         <section className="mx-4 mt-6">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Om produkten</h2>
           <Expandable text={item.description} />
@@ -218,24 +262,45 @@ export default function ItemPage() {
           </button>
         )}
 
+        {item.url && (
+          <button
+            onClick={() => recrawl()}
+            disabled={crawling}
+            className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-paper py-2.5 text-sm font-semibold disabled:opacity-60"
+          >
+            {crawling ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /> : <Icon name="link" size={16} />}
+            {crawling ? "Läser sidan…" : `Uppdatera från ${hostname(item.url)}`}
+          </button>
+        )}
+
         {offers.length > 0 && (
           <ul className="mb-3 divide-y divide-line">
-            {offers.map((o) => (
+            {(allOffers ? offers : offers.slice(0, 6)).map((o) => (
               <li key={o.id}>
                 <a href={o.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 py-3">
                   <Thumb src={o.thumbnail} alt={o.merchant || o.title} size={44} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{o.merchant || o.source}</p>
                     <p className="truncate text-xs text-muted">
-                      {o.title}
+                      <span className="mr-1 rounded bg-paper px-1.5 py-0.5 font-semibold">{o.source === "Länk" ? "Din länk" : o.source}</span>
+                      {o.source === "Google Shopping" && o.title}
                       {o.rating != null && ` · ★ ${o.rating}${o.reviews ? ` (${o.reviews})` : ""}`}
                     </p>
                   </div>
-                  <span className="shrink-0 font-bold">{formatPrice(o.price, o.currency)}</span>
+                  <span className="shrink-0 font-bold">{o.price != null ? formatPrice(o.price, o.currency) : <Icon name="external" size={16} className="text-muted" />}</span>
                 </a>
               </li>
             ))}
-            <li className="pt-2 text-xs text-muted">Uppdaterat {timeAgo(offers[0].fetched_at)} via Google Shopping</li>
+            {offers.length > 6 && (
+              <li>
+                <button onClick={() => setAllOffers(!allOffers)} className="w-full py-3 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+                  {allOffers ? "Visa färre" : `Visa alla ${offers.length} butiker`}
+                </button>
+              </li>
+            )}
+            <li className="pt-2 text-xs text-muted">
+              Uppdaterat {timeAgo(Math.max(...offers.map((o) => o.fetched_at)))} · källa: {[...new Set(offers.map((o) => (o.source === "Länk" ? "din länk" : o.source)))].join(", ")}
+            </li>
           </ul>
         )}
 
@@ -307,7 +372,19 @@ function Expandable({ text }: { text: string }) {
   );
 }
 
-function EditForm({ item, onSave, onDelete }: { item: Item; onSave: (b: Record<string, unknown>) => void; onDelete: () => void }) {
+function EditForm({
+  item,
+  crawling,
+  onSave,
+  onRecrawl,
+  onDelete,
+}: {
+  item: Item;
+  crawling: boolean;
+  onSave: (b: Record<string, unknown>) => void;
+  onRecrawl: (url: string) => void;
+  onDelete: () => void;
+}) {
   const [f, setF] = useState({
     title: item.title,
     note: item.note,
@@ -315,29 +392,13 @@ function EditForm({ item, onSave, onDelete }: { item: Item; onSave: (b: Record<s
     price: item.price == null ? "" : String(item.price),
     url: item.url,
   });
-  const [fetching, setFetching] = useState(false);
-  const [extra, setExtra] = useState<{ image?: string; description?: string }>({});
   const field = "w-full rounded-2xl border border-line bg-card px-4 py-3 text-base outline-none focus:border-[var(--accent)]";
-
-  async function fetchInfo() {
-    if (!f.url) return;
-    setFetching(true);
-    try {
-      const info = await api<{ title: string; image: string; description: string; price: number | null; url: string }>("/api/unfurl", { body: { url: f.url } });
-      setF((x) => ({ ...x, title: x.title || info.title, price: info.price != null ? String(info.price) : x.price, url: info.url }));
-      setExtra({ image: info.image, description: info.description });
-    } catch {
-      // ignorera – användaren kan fylla i själv
-    } finally {
-      setFetching(false);
-    }
-  }
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSave({ ...f, price: f.price.replace(",", "."), ...extra });
+        onSave({ ...f, price: f.price.replace(",", ".") });
       }}
       className="space-y-3"
     >
@@ -359,12 +420,11 @@ function EditForm({ item, onSave, onDelete }: { item: Item; onSave: (b: Record<s
         Länk till produkt
         <div className="mt-1 flex gap-2">
           <input className={field} type="url" value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} placeholder="https://…" />
-          <button type="button" onClick={fetchInfo} disabled={!f.url || fetching} className="shrink-0 rounded-2xl bg-card px-4 text-sm font-semibold disabled:opacity-40">
-            {fetching ? "…" : "Hämta info"}
+          <button type="button" onClick={() => onRecrawl(f.url)} disabled={!f.url || crawling} className="shrink-0 rounded-2xl bg-card px-4 text-sm font-semibold disabled:opacity-40">
+            {crawling ? "…" : "Hämta info"}
           </button>
         </div>
       </label>
-      {extra.image && <Thumb src={extra.image} alt={f.title} size={72} />}
       <label className="block text-sm font-semibold">
         Anteckning
         <textarea className={field + " mt-1"} rows={3} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Storlek, färg, märke…" maxLength={1000} />

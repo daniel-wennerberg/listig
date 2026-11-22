@@ -24,6 +24,12 @@ export interface Item {
   url: string;
   image: string;
   description: string;
+  summary: string;
+  brand: string;
+  gtin: string;
+  category: string;
+  rating: number | null;
+  review_count: number | null;
   price: number | null;
   currency: string;
   priority: number;

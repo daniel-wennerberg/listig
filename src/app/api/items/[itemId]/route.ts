@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { searchLinks, priceSearchEnabled } from "@/lib/prices";
+import { searchQuery } from "@/lib/product";
 import { bad, hidesReservations, json, loadItem, loadList, str, toComment, toItem, toOffer } from "@/lib/server";
 
 type Ctx = { params: Promise<{ itemId: string }> };
@@ -32,7 +33,7 @@ export async function GET(req: Request, { params }: Ctx) {
     surprise: ctx.hide,
     comments: comments.rows.map(toComment),
     offers: offers.rows.map(toOffer),
-    searchLinks: searchLinks(item.title),
+    searchLinks: searchLinks(searchQuery(item)),
     priceSearchEnabled: priceSearchEnabled(),
   });
 }

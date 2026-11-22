@@ -103,12 +103,14 @@ export default function ListPage() {
     withName(async () => {
       setAdding(true);
       try {
-        const { item } = await api<{ item: Item }>(`/api/lists/${id}/items`, {
+        const { item, crawled } = await api<{ item: Item; crawled: boolean | null }>(`/api/lists/${id}/items`, {
           listId: id,
           body: { title: t, author: localStorage.getItem("listig:name") ?? "" },
         });
         setText("");
         setData((d) => (d ? { ...d, items: [item, ...d.items] } : d));
+        if (crawled === false) setToast("Sidan gick inte att läsa – namnet är gissat från länken");
+        else if (crawled) setToast(`Hämtade info om ${item.title}`);
       } catch (err) {
         setToast(err instanceof Error ? err.message : "Kunde inte lägga till");
       } finally {
@@ -297,6 +299,12 @@ export default function ListPage() {
         onSubmit={add}
         className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur"
       >
+        {adding && /https?:\/\//.test(text) && (
+          <p className="mx-auto mb-2 flex max-w-xl items-center gap-2 px-2 text-sm text-muted">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+            Läser sidan och letar produktinfo…
+          </p>
+        )}
         <div className="mx-auto flex max-w-xl gap-2">
           <input
             value={text}
@@ -304,7 +312,7 @@ export default function ListPage() {
             placeholder={
               list.type === "shopping"
                 ? "Lägg till… (t.ex. mjölk)"
-                : "Sak eller länk till produkt…"
+                : "Sak eller klistra in länk…"
             }
             enterKeyHint="done"
             className="min-w-0 flex-1 rounded-full border border-line bg-card px-5 py-3.5 text-base outline-none focus:border-[var(--accent)]"

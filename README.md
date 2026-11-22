@@ -11,7 +11,12 @@ En **mobile first** app för delade listor – handlingslistor, önskelistor och
     - Den som öppnar en delad önskelista får först frågan *"Är det här din egen lista?"* – svarar man ja döljs allt som är köpt.
   - ✨ **Vill ha-lista** – spara saker du spanar på, prioritera med stjärnor och jämför priser.
 - **Dela med en länk** – via mobilens delningsmeny (Web Share API) eller kopiera länken. Ingen inloggning; man anger bara sitt namn första gången.
-- **Klistra in en produktlänk** – appen hämtar namn, bild, beskrivning och pris (OpenGraph + JSON-LD `Product`).
+- **Klistra in en produktlänk** – appen crawlar sidan och hämtar produktnamn, kort info, beskrivning, bild, pris, märke, EAN, kategori och betyg (JSON-LD `Product`, microdata, OpenGraph). Text runt länken blir en anteckning.
+  - **PriceRunner-länk** → alla butiker med priser blir en prislista.
+  - **Prisjakt-länk** → namn, bild och kategori (Prisjakts butikspriser laddas i webbläsaren och går inte att läsa ut).
+  - **Butikslänk** → butiken och priset hamnar under *Var finns den?*.
+  - Sidor med bot-skydd (t.ex. Inet, Elgiganten) → namnet gissas från länken.
+  - Med `SERPAPI_KEY` söks Google Shopping automatiskt efter fler butiker i bakgrunden.
 - **Detaljsida** per sak med bild, pris, mer info om produkten, anteckning, antal, prioritet och **kommentarer**.
 - **Var finns den?** – prisjämförelse från Google Shopping (via SerpApi) samt direktlänkar till sökningar på Prisjakt, PriceRunner och Google Shopping.
 - Uppdateras automatiskt så alla ser samma lista. Ljust/mörkt läge. Kan läggas till på hemskärmen (PWA-manifest).
@@ -56,7 +61,7 @@ Funkar på t.ex. Vercel: sätt `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` och (val
 | `GET` / `PATCH` / `DELETE` | `/api/items/:id` | Detaljer (kommentarer, erbjudanden, söklänkar) / ändra / ta bort |
 | `POST` | `/api/items/:id/comments` | Kommentera `{ body, author, secret? }` |
 | `POST` | `/api/items/:id/offers` | Sök priser på Google Shopping |
-| `POST` | `/api/unfurl` | Hämta produktinfo från en URL |
+| `POST` | `/api/items/:id/crawl` | Läs (ny) produktlänk `{ url?, overwriteTitle? }` och uppdatera info + butiker |
 
 ## Licens
 
