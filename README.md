@@ -29,23 +29,49 @@ En **mobile first** app för delade listor – handlingslistor, önskelistor och
 | Prisjakt | Endast partner-API efter ansökan | Länk till sökresultat |
 | PriceRunner | Nej (affiliate-feeds via nätverk) | Länk till sökresultat |
 
-Har du partneråtkomst till Prisjakt eller PriceRunner kan du lägga till en provider i [`src/lib/prices.ts`](src/lib/prices.ts).
+Har du partneråtkomst till Prisjakt eller PriceRunner kan du lägga till en provider i [`server/src/lib/prices.ts`](server/src/lib/prices.ts).
+
+## Struktur
+
+```
+listig/
+├── client/            🖥️  React 19 + Vite + React Router + Tailwind 4
+│   ├── src/pages/       Home, ListPage, ItemPage
+│   ├── src/components/  UI-komponenter
+│   └── src/lib.ts       API-anrop, localStorage, hjälpfunktioner
+├── server/            ⚙️  Node 22 + Hono + libSQL (SQLite)
+│   ├── src/routes/      lists.ts, items.ts  (REST-API under /api)
+│   └── src/lib/         databas, crawler, prissökning
+├── shared/            🔁  Typer som både klient och server använder
+├── Dockerfile         📦  Bygger båda → en image
+└── docker-compose.yml
+```
+
+I produktion levererar servern även klientens byggda filer, så allt körs i **en container**.
+I utveckling körs de separat och Vite skickar vidare `/api` till servern.
 
 ## Kom igång
 
 ```bash
-npm install
-cp .env.example .env.local   # valfritt: lägg in SERPAPI_KEY
-npm run dev
+npm run setup                          # installerar root, server och client
+cp server/.env.example server/.env     # valfritt: lägg in SERPAPI_KEY
+npm run dev                            # server :3001 + klient :5180
 ```
 
-Öppna http://localhost:3000 (gärna i mobilvy).
+Öppna http://localhost:5180 (gärna i mobilvy).
+
+| Kommando | Vad det gör |
+|---|---|
+| `npm run dev` | Startar server (tsx watch) och klient (Vite) samtidigt |
+| `npm run build` | Bygger `client/dist` och `server/dist` |
+| `npm start` | Kör produktionsbygget på :3001 (`PORT=3000 npm start` för annan port) |
+| `npm run check` | Typkontroll av båda + lint av klienten |
 
 ## Teknik
 
-- Next.js 15 (App Router) + React 19 + Tailwind CSS 4
-- [libSQL](https://github.com/tursodatabase/libsql) – SQLite-fil (lokalt och i Docker), eller hostad via `DATABASE_URL` (t.ex. Turso)
-- Docker (`Dockerfile`, `docker-compose.yml`)
+- **Klient:** React 19, Vite, React Router 7, Tailwind CSS 4, självhostade typsnitt (Fontsource)
+- **Server:** Node 22, [Hono](https://hono.dev), [libSQL](https://github.com/tursodatabase/libsql) – SQLite-fil som standard, eller hostad via `DATABASE_URL` (t.ex. Turso); byggs med esbuild till en fil
+- **Docker:** flerstegsbygge (klient → server → liten körimage)
 - Ingen inloggning: listans id i URL:en är delningsnyckeln; den som skapar listan får en ägartoken (sparas i webbläsaren) som krävs för att byta namn på/ta bort listan.
 
 ## Driftsätta
@@ -68,6 +94,7 @@ Steg-för-steg för Coolify/VPS, backup och byte av leverantör: **[docs/DEPLOY.
 | `GET` / `PATCH` / `DELETE` | `/api/items/:id` | Detaljer (kommentarer, erbjudanden, söklänkar) / ändra / ta bort |
 | `POST` | `/api/items/:id/comments` | Kommentera `{ body, author, secret? }` |
 | `POST` | `/api/items/:id/offers` | Sök priser på Google Shopping |
+| `GET` | `/api/health` | Hälsokontroll |
 | `POST` | `/api/items/:id/crawl` | Läs (ny) produktlänk `{ url?, overwriteTitle? }` och uppdatera info + butiker |
 
 ## Licens

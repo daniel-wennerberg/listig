@@ -1,6 +1,6 @@
 # Driftsätta Listig
 
-Listig levereras som en **Docker-image**. Samma image körs hos alla leverantörer, så du kan
+Listig levereras som en **Docker-image** som innehåller både server (`server/`) och klient (`client/`). Samma image körs hos alla leverantörer, så du kan
 byta leverantör genom att flytta en enda sak: databasvolymen (`/data`).
 
 ```
