@@ -44,12 +44,19 @@ npm run dev
 ## Teknik
 
 - Next.js 15 (App Router) + React 19 + Tailwind CSS 4
-- [libSQL](https://github.com/tursodatabase/libsql) – lokal SQLite-fil i utveckling, [Turso](https://turso.tech) i produktion
+- [libSQL](https://github.com/tursodatabase/libsql) – SQLite-fil (lokalt och i Docker), eller hostad via `DATABASE_URL` (t.ex. Turso)
+- Docker (`Dockerfile`, `docker-compose.yml`)
 - Ingen inloggning: listans id i URL:en är delningsnyckeln; den som skapar listan får en ägartoken (sparas i webbläsaren) som krävs för att byta namn på/ta bort listan.
 
 ## Driftsätta
 
-Funkar på t.ex. Vercel: sätt `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` och (valfritt) `SERPAPI_KEY` som miljövariabler.
+Appen körs som en Docker-container, så den kan flyttas mellan leverantörer (Coolify, Sliplane, Hetzner, Glesys, UpCloud, AWS …).
+
+```bash
+docker compose up -d --build   # http://localhost:3000, data i volymen listig-data
+```
+
+Steg-för-steg för Coolify/VPS, backup och byte av leverantör: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
 ## API
 

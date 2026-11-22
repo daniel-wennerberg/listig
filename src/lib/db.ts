@@ -1,6 +1,6 @@
 import { createClient, type Client } from "@libsql/client";
 
-// Lokalt: SQLite-fil. I produktion: sätt TURSO_DATABASE_URL + TURSO_AUTH_TOKEN.
+// Lokalt: SQLite-fil (local.db). I Docker: DATABASE_URL=file:/data/listig.db. Turso: libsql://… + DATABASE_AUTH_TOKEN.
 let client: Client | null = null;
 let ready: Promise<void> | null = null;
 
@@ -62,8 +62,9 @@ const SCHEMA = [
 export async function db(): Promise<Client> {
   if (!client) {
     client = createClient({
-      url: process.env.TURSO_DATABASE_URL || "file:local.db",
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      // DATABASE_URL: "file:/data/listig.db" (Docker/VPS) eller "libsql://…" (Turso)
+      url: process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || "file:local.db",
+      authToken: process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN,
     });
   }
   if (!ready) {

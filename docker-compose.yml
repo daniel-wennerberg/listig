@@ -1,0 +1,17 @@
+# Enkel drift på valfri VPS:  docker compose up -d --build
+# Data (SQLite) ligger i volymen "listig-data". Backup: se docs/DEPLOY.md
+services:
+  listig:
+    build: .
+    image: listig
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000" # nås via Caddy/Coolify – inte direkt från internet
+    environment:
+      DATABASE_URL: file:/data/listig.db
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+    volumes:
+      - listig-data:/data
+
+volumes:
+  listig-data:

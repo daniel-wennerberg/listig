@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.playwright-mcp
+local.db*
+data
+.env*
+!.env.example
+*.md
+Dockerfile
+docker-compose.yml
