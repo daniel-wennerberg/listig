@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: Ctx) {
   const text = str(body.body, 2000);
   if (!text) return bad("Kommentaren är tom");
   // Hemliga kommentarer (bara på önskelistor, och inte från ägaren själv) döljs för ägaren.
-  const secret = found.list.type === "wish" && !found.isOwner && Boolean(body.secret);
+  const secret = found.list.type === "wish" && !found.surprise && Boolean(body.secret);
   const comment = {
     id: nanoid(12),
     item_id: itemId,

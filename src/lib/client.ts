@@ -16,6 +16,13 @@ export const ownerToken = (listId: string) => safe(() => localStorage.getItem(`l
 export const setOwnerToken = (listId: string, t: string) =>
   safe(() => localStorage.setItem(`listig:owner:${listId}`, t), undefined);
 
+/** "Det här är min lista" på en enhet utan ägartoken → dölj köpstatus. */
+export const surpriseMode = (listId: string) => safe(() => localStorage.getItem(`listig:surprise:${listId}`) === "1", false);
+export const setSurpriseMode = (listId: string, on: boolean) =>
+  safe(() => (on ? localStorage.setItem(`listig:surprise:${listId}`, "1") : localStorage.removeItem(`listig:surprise:${listId}`)), undefined);
+export const spoilerSeen = (listId: string) => safe(() => localStorage.getItem(`listig:seen:${listId}`) === "1", false);
+export const setSpoilerSeen = (listId: string) => safe(() => localStorage.setItem(`listig:seen:${listId}`, "1"), undefined);
+
 export type SavedList = Pick<List, "id" | "title" | "type" | "emoji"> & { visited: number };
 
 export const myLists = (): SavedList[] =>
@@ -44,6 +51,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   if (opts.listId) {
     const t = ownerToken(opts.listId);
     if (t) headers["x-owner-token"] = t;
+    if (surpriseMode(opts.listId)) headers["x-surprise"] = "1";
   }
   const res = await fetch(path, {
     method: opts.method ?? (opts.body ? "POST" : "GET"),

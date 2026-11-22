@@ -11,6 +11,7 @@ export interface List {
   title: string;
   type: ListType;
   emoji: string;
+  owner_name: string;
   created_at: number;
 }
 

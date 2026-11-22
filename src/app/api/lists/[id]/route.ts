@@ -8,10 +8,10 @@ export async function GET(req: Request, { params }: Ctx) {
   const found = await loadList(id, req);
   if (!found) return bad("Listan finns inte", 404);
   const c = await db();
-  const hide = hidesReservations(found.list, found.isOwner);
+  const hide = hidesReservations(found.list, found.isOwner, found.surprise);
   const res = await c.execute({
     sql: `SELECT i.*, (SELECT COUNT(*) FROM comments c WHERE c.item_id = i.id ${hide ? "AND c.secret = 0" : ""}) AS comment_count
-          FROM items i WHERE i.list_id = ? ORDER BY i.checked ASC, i.priority DESC, i.created_at DESC`,
+          FROM items i WHERE i.list_id = ? ORDER BY ${hide ? "" : "i.checked ASC,"} i.priority DESC, i.created_at DESC`,
     args: [id],
   });
   return json({ ...found, items: res.rows.map((r) => toItem(r, hide)) });

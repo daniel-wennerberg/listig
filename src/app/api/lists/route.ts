@@ -9,13 +9,14 @@ export async function POST(req: Request) {
   const title = str(body.title, 80) || LIST_TYPES[type].label;
   const emoji = str(body.emoji, 8) || LIST_TYPES[type].emoji;
   if (!title) return bad("Titel saknas");
+  const ownerName = str(body.ownerName, 40);
   const id = nanoid(10);
   const ownerToken = nanoid(24);
   const c = await db();
   const now = Date.now();
   await c.execute({
-    sql: "INSERT INTO lists (id, owner_token, title, type, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-    args: [id, ownerToken, title, type, emoji, now],
+    sql: "INSERT INTO lists (id, owner_token, title, type, emoji, owner_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    args: [id, ownerToken, title, type, emoji, ownerName, now],
   });
-  return json({ list: { id, title, type, emoji, created_at: now }, ownerToken }, 201);
+  return json({ list: { id, title, type, emoji, owner_name: ownerName, created_at: now }, ownerToken }, 201);
 }

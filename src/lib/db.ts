@@ -11,6 +11,7 @@ const SCHEMA = [
     title TEXT NOT NULL,
     type TEXT NOT NULL DEFAULT 'shopping',
     emoji TEXT NOT NULL DEFAULT '🛒',
+    owner_name TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS items (
@@ -70,6 +71,8 @@ export async function db(): Promise<Client> {
     ready = (async () => {
       await c.execute("PRAGMA foreign_keys = ON").catch(() => {});
       await c.batch(SCHEMA, "write");
+      // Migreringar för databaser skapade med äldre schema
+      await c.execute("ALTER TABLE lists ADD COLUMN owner_name TEXT NOT NULL DEFAULT ''").catch(() => {});
     })();
   }
   await ready;

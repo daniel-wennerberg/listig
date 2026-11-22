@@ -14,6 +14,7 @@ export function toList(r: Row): List {
     title: String(r.title),
     type: r.type as List["type"],
     emoji: String(r.emoji),
+    owner_name: String(r.owner_name ?? ""),
     created_at: Number(r.created_at),
   };
 }
@@ -68,18 +69,24 @@ export function toOffer(r: Row): Offer {
   };
 }
 
-/** Hämtar listan + avgör om anroparen är ägare (via x-owner-token). */
+/**
+ * Hämtar listan + avgör om anroparen är ägare (via x-owner-token).
+ * `surprise` = anroparen har sagt "det är min lista" på en enhet utan ägartoken
+ * (header x-surprise: 1) – då döljs köpstatus precis som för ägaren.
+ */
 export async function loadList(listId: string, req: Request) {
   const c = await db();
   const res = await c.execute({ sql: "SELECT * FROM lists WHERE id = ?", args: [listId] });
   const row = res.rows[0];
   if (!row) return null;
+  const list = toList(row);
   const isOwner = req.headers.get("x-owner-token") === String(row.owner_token);
-  return { list: toList(row), isOwner };
+  const surprise = list.type === "wish" && (isOwner || req.headers.get("x-surprise") === "1");
+  return { list, isOwner, surprise };
 }
 
-/** Önskelistor: ägaren ska inte se vad som är reserverat (överraskning!). */
-export const hidesReservations = (list: List, isOwner: boolean) => list.type === "wish" && isOwner;
+/** Önskelistor: ägaren ska inte se vad som är reserverat/köpt (överraskning!). */
+export const hidesReservations = (_list: List, _isOwner: boolean, surprise: boolean) => surprise;
 
 export async function loadItem(itemId: string) {
   const c = await db();

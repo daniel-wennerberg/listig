@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, Sheet } from "@/components/ui";
-import { api, myLists, rememberList, setOwnerToken, type SavedList } from "@/lib/client";
+import { api, getName, myLists, rememberList, setName, setOwnerToken, type SavedList } from "@/lib/client";
 import { LIST_TYPES, type List, type ListType } from "@/lib/types";
 
 export default function Home() {
@@ -13,15 +13,23 @@ export default function Home() {
   const [type, setType] = useState<ListType>("shopping");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [name, setNameField] = useState("");
+  const [hasName, setHasName] = useState(true);
 
-  useEffect(() => setLists(myLists()), []);
+  useEffect(() => {
+    setLists(myLists());
+    const n = getName();
+    setNameField(n);
+    setHasName(Boolean(n));
+  }, []);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    if (name.trim()) setName(name);
     try {
       const { list, ownerToken } = await api<{ list: List; ownerToken: string }>("/api/lists", {
-        body: { title, type },
+        body: { title, type, ownerName: name.trim() },
       });
       setOwnerToken(list.id, ownerToken);
       rememberList(list);
@@ -112,6 +120,16 @@ export default function Home() {
             ))}
           </div>
           <p className="text-sm text-muted">{LIST_TYPES[type].hint}</p>
+          {!hasName && (
+            <input
+              value={name}
+              onChange={(e) => setNameField(e.target.value)}
+              placeholder="Ditt namn"
+              maxLength={40}
+              required={type === "wish"}
+              className="w-full rounded-2xl border border-line bg-paper px-4 py-3 text-base outline-none focus:border-ink"
+            />
+          )}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}

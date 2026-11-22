@@ -6,7 +6,9 @@ En **mobile first** app för delade listor – handlingslistor, önskelistor och
 
 - **Tre listtyper**
   - 🛒 **Handlingslista** – bocka av, se vem som bockat av vad.
-  - 🎁 **Önskelista** – vänner *reserverar* presenter så ingen köper samma sak. Ägaren ser **inte** vad som är reserverat, och kommentarer kan markeras som hemliga, så överraskningen håller.
+  - 🎁 **Önskelista** – de du delar med markerar *Jag köper* och sedan *köpt*, och ser vem som köper vad. Ägaren ser **inte** vad som är köpt (inte heller via sortering eller hemliga kommentarer), så överraskningen håller.
+    - Öppnar ägaren listan på en annan enhet används en *ägarlänk* (Meny → Kopiera ägarlänk).
+    - Den som öppnar en delad önskelista får först frågan *"Är det här din egen lista?"* – svarar man ja döljs allt som är köpt.
   - ✨ **Vill ha-lista** – spara saker du spanar på, prioritera med stjärnor och jämför priser.
 - **Dela med en länk** – via mobilens delningsmeny (Web Share API) eller kopiera länken. Ingen inloggning; man anger bara sitt namn första gången.
 - **Klistra in en produktlänk** – appen hämtar namn, bild, beskrivning och pris (OpenGraph + JSON-LD `Product`).

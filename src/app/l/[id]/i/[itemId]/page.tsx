@@ -10,6 +10,7 @@ interface Data {
   item: Item;
   list: List;
   isOwner: boolean;
+  surprise: boolean;
   comments: Comment[];
   offers: Offer[];
   searchLinks: { source: string; url: string }[];
@@ -89,7 +90,8 @@ export default function ItemPage() {
     );
   if (!data) return <main className="m-4 mt-20 h-72 animate-pulse rounded-3xl bg-card" />;
 
-  const { item, list, isOwner, comments, offers } = data;
+  const { item, list, surprise, comments, offers } = data;
+  const me = name ?? "";
   const wish = list.type === "wish";
   const cheapest = offers.find((o) => o.price != null);
 
@@ -144,14 +146,37 @@ export default function ItemPage() {
               <Icon name="check" size={18} /> {item.checked ? `Avbockad${item.checked_by ? ` av ${item.checked_by}` : ""} – ångra` : list.type === "shopping" ? "Bocka av" : "Köpt!"}
             </button>
           )}
-          {wish && !isOwner && (
+          {wish && !surprise && !item.reserved_by && (
             <button
-              onClick={() => withName(() => patch({ reserved: !item.reserved_by }))}
-              className={`flex items-center gap-2 rounded-full px-5 py-3 font-semibold ${item.reserved_by ? "bg-card" : "text-white"}`}
-              style={item.reserved_by ? {} : { background: "var(--accent)" }}
+              onClick={() => withName(() => patch({ reserved: true }))}
+              className="flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white"
+              style={{ background: "var(--accent)" }}
             >
-              <Icon name="gift" size={18} /> {item.reserved_by ? `Reserverad av ${item.reserved_by} – släpp` : "Jag köper den här"}
+              <Icon name="gift" size={18} /> Jag köper den här
             </button>
+          )}
+          {wish && !surprise && item.reserved_by && (
+            <div className="w-full rounded-3xl bg-card p-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <Avatar name={item.reserved_by} size={28} />
+                {item.reserved_by === me ? "Du" : item.reserved_by} {item.checked ? "har köpt den ✓" : "ska köpa den"}
+              </p>
+              <p className="mt-1 text-sm text-muted">Syns för alla som fått länken – men inte för {list.owner_name || "listägaren"}.</p>
+              {item.reserved_by === me && (
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => patch({ checked: !item.checked })}
+                    className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    {item.checked ? "Ångra köpt" : "Markera som köpt"}
+                  </button>
+                  <button onClick={() => patch({ reserved: false })} className="rounded-full bg-paper px-4 py-2.5 text-sm font-semibold">
+                    Släpp
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {list.type !== "shopping" && (
             <div className="flex items-center rounded-full bg-card px-2" role="group" aria-label="Hur gärna?">
@@ -227,7 +252,7 @@ export default function ItemPage() {
       <Comments
         comments={comments}
         wish={wish}
-        isOwner={isOwner}
+        surprise={surprise}
         onPost={(body, secret) =>
           withName(async () => {
             try {
@@ -354,9 +379,9 @@ function EditForm({ item, onSave, onDelete }: { item: Item; onSave: (b: Record<s
   );
 }
 
-function Comments({ comments, wish, isOwner, onPost }: { comments: Comment[]; wish: boolean; isOwner: boolean; onPost: (body: string, secret: boolean) => void }) {
+function Comments({ comments, wish, surprise, onPost }: { comments: Comment[]; wish: boolean; surprise: boolean; onPost: (body: string, secret: boolean) => void }) {
   const [text, setText] = useState("");
-  const canSecret = wish && !isOwner;
+  const canSecret = wish && !surprise;
   const [secret, setSecret] = useState(true);
 
   return (

@@ -9,7 +9,7 @@ async function context(itemId: string, req: Request) {
   if (!row) return null;
   const found = await loadList(String(row.list_id), req);
   if (!found) return null;
-  return { row, ...found, hide: hidesReservations(found.list, found.isOwner) };
+  return { row, ...found, hide: hidesReservations(found.list, found.isOwner, found.surprise) };
 }
 
 export async function GET(req: Request, { params }: Ctx) {
@@ -29,6 +29,7 @@ export async function GET(req: Request, { params }: Ctx) {
     item,
     list: ctx.list,
     isOwner: ctx.isOwner,
+    surprise: ctx.hide,
     comments: comments.rows.map(toComment),
     offers: offers.rows.map(toOffer),
     searchLinks: searchLinks(item.title),
@@ -63,6 +64,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const p = body.price === null || body.price === "" ? null : Number(body.price);
     set("price", p != null && Number.isFinite(p) ? p : null);
   }
+  if (ctx.hide && ("checked" in body || "reserved" in body))
+    return bad("På din egen önskelista kan du inte se eller ändra vad som är köpt", 403);
   if ("checked" in body) {
     set("checked", body.checked ? 1 : 0);
     set("checked_by", body.checked ? str(body.author, 40) : "");
@@ -76,6 +79,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       set("reserved_by", me || "Någon");
     } else {
       set("reserved_by", "");
+      set("checked", 0);
+      set("checked_by", "");
     }
   }
   if (!sets.length) return bad("Inget att uppdatera");
